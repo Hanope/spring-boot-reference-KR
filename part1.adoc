@@ -1,0 +1,66 @@
+= Part I. Spring Boot 문서
+이 섹션에서는 스프링 부트 참조 문서에 대해 간단한 개요를 제공한다. 문서의 나머지 부분에 대한 가이드가 된다.
+
+== 1. 문서에 대하여
+Spring Boot 참조 가이드는 다음과 같이 제공된다.
+
+* https://docs.spring.io/spring-boot/docs/2.1.0.BUILD-SNAPSHOT/reference/html[HTML]
+* https://docs.spring.io/spring-boot/docs/2.1.0.BUILD-SNAPSHOT/reference/pdf/spring-boot-reference.pdf[PDF]
+* https://docs.spring.io/spring-boot/docs/2.1.0.BUILD-SNAPSHOT/reference/epub/spring-boot-reference.epub[EPUB]
+
+최신본은 https://docs.spring.io/spring-boot/docs/current/reference[docs.spring.io/spring-boot/docs/current/reference]에서 확인할 수 있다.
+
+이 문서의 사본은 인쇄본이든 전자적으로 배포하든 관계없이 사본에 저작권 표시를 포함한다는 전제 하에, 자신의 용도로 사용 및 다른 사람에게 배포할 수 있다.
+
+== 2. 도움 받기
+만약 Spring Boot에 문제가 있다면 다음을 통해 도와줄 수 있다.
+
+* How-to documents를 참조. 일반적인 질문에 대한 해결책을 제공한다.
+* Spring 기본을 배우세요. Spring Boot는 다른 많은 Spring 프로젝트를 기반으로 한다.
+* 질문하세요. 우리는 https://stackoverflow.com/[stackoverflow.com]에 https://stackoverflow.com/tags/spring-boot[spring-boot] 태그된 질문을 모니터링한다.
+* https://github.com/spring-projects/spring-boot/issues[github.com/spring-projects/spring-boot/issues]에 Spring Boot 버그를 올려주세요.
+
+[NOTE]
+====
+문서를 포함한 Spring Boot의 모든 것은 오픈소스이다. 문서에 문제가 있거나 개선하기 원하면 https://github.com/spring-projects/spring-boot/tree/master[참여]하시오.
+====
+
+== 3. 첫번째 단계
+Spring Boot 또는 'Spring'을 처음 한다면 다음 항목으로 시작하시오:
+
+* 기초부터: 개요 | 요구사항 | 설치
+* 튜토리얼: 파트 1 | 파트 2
+* 예제 실행: 파트 1 | 파트 2
+
+== 4. Spring Boot로 작업하기
+Spring Boot를 사용할 준비가 되었습니까? 이 문서는 다음 사항을 다룬다.
+
+* 빌드 시스템: Maven | Gradle | Ant | Starters
+* 모범 사례: 코드 구조 | @Configuration | @EnableAutoConfiguration | 빈들과 의존성 주입
+* 코드 실행하기: IDE | Packaged | Maven | Gradle
+* application 패키징: jars로 제작
+* Spring Boot CLI: CLI 사용하기
+
+== 5. Spring Boot 기능에 대해 배우기
+Spring Boot의 핵심 기능에 대해 상세한 정보가 필요한가요? 다음 내용이 적합하다.
+
+* 핵심 기능: SpringApplication | 외부 설정 | Profiles | Logging
+* 웹 Applications: MVC | 내장 컨테이너
+* 데이터 작업: SQL | NO-SQL
+* 메세징: 개요 | JMS
+* 테스팅: 개요 | Boot Applications | Utils
+* 확장: Auto-configuration | @Conditions
+
+== 6. 제품화하기
+Spring Boot Application을 운영 환경에 적용할 준비가 되면, 다음 몇가지 방법을 활용할 수 있다.
+
+* Endpoints 관리: 개요 | 사용자 정의
+* 연결 옵션들: HTTP | JMX
+* 모니터링: Metrics | Auditing | Tracing | Process
+
+== 7. 고급 주제들
+마지막으로 고급 사용자를 위한 몇 가지 주제가 있다.
+
+* Spring Boot Applications 배포: Cloud Deployment | OS 서비스
+* 빌드 툴 플러그인들: Maven | Gradle
+* 부록: Application Properties | Auto-configuration | 실행할 수 있는 Jars
