@@ -1,0 +1,280 @@
+= Part VIII. 빌드 툴 플러그인들
+
+Spring Boot는 Maven과 Gralde을 위한 빌드 툴 플로그인을 제공한다. 플러그인은 실행 가능한 jar 패키지와 같은 다양한 기능을 제공한다. 이 섹션에서는 지원되지 않는 빌드 시스템을 확장해야 할 경우 두 가지 플러그인에 대한 자세한 내용과 몇 가지 도움말을 제공한다. 시작하기 전에 "Part III, "Spring Boot 사용하기"" 섹션의 "13장, 빌드 시스템"을 읽어보시오.
+
+== 70. Spring Boot Maven 플러그인
+https://docs.spring.io/spring-boot/docs/2.1.0.BUILD-SNAPSHOT/maven-plugin[Spring Boot Maven 플러그인]은 Maven에서 Spring Boot 지원을 제공하여 실행 가능한 jar 또는 war 아카이브를 패키징하고 "in-place" application을 실행할 수 있도록 한다. 이를 사용하려면 Maven 3.2(또는 그 이상)를 사용해야 한다.
+
+[NOTE]
+====
+완전한 플러그인 문서는 https://docs.spring.io/spring-boot/docs/2.1.0.BUILD-SNAPSHOT/maven-plugin[Spring Boot Maven 플러그인 사이트]를 참조하시오.
+====
+
+== 70.1 플러그인 포힘하기
+Spring Boot Maven 플러그인을 사용하려면, 다음 예제와 같이 pom.xml의 plugins 섹션에 적절한 XML을 포함하시오:
+
+[source,xml]
+----
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <!-- ... -->
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <version>2.1.0.BUILD-SNAPSHOT</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>repackage</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>
+----
+
+위의 설정은 Maven 라이프 사이클의 패키지 단계에서 빌드 된 jar 또는 war를 리패키징한다. 다음 예제는 대상 디렉토리에 있는 원래의 jar와 리패키징된 jar를 보여준다.
+
+[source,bash]
+----
+$ mvn package
+$ ls target/*.jar
+target/myproject-1.0.0.jar target/myproject-1.0.0.jar.original
+----
+
+이전 예와 같이 <execution/> 설정을 포함하지 않으면 다음 예제와 같이 자체적으로 플러그인을 실행할 수 있다. (패키지 목표(goal)가 사용된 경우)
+
+[source,bash]
+----
+$ mvn package spring-boot:repackage
+$ ls target/*.jar
+target/myproject-1.0.0.jar target/myproject-1.0.0.jar.original
+----
+
+마일스톤 또는 스냅샷 릴리즈를 사용하는 경우 다음 목록과 같이 적절한 PluginRepository 요소도 추가해야 한다.
+
+[source,xml]
+----
+<pluginRepositories>
+    <pluginRepository>
+        <id>spring-snapshots</id>
+        <url>https://repo.spring.io/snapshot</url>
+    </pluginRepository>
+    <pluginRepository>
+        <id>spring-milestones</id>
+        <url>https://repo.spring.io/milestone</url>
+    </pluginRepository>
+</pluginRepositories>
+----
+
+== 70.2 실행 가능한 Jar와 War 파일 패키징하기
+spring-boot-maven-plugin이 pom.xml에 포함되면 spring-boot:repackage 목표(goal)를 사용하여 아카이브를 실행 가능하도록 재작성한다. 다음 예제와 같이 일반적인 패키징 요소를 사용하여 jar 또는 war(적절한 경우)를 빌드하도록 프로젝트를 구성해야 한다.
+
+[source,xml]
+----
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <!-- ... -->
+    <packaging>jar</packaging>
+    <!-- ... -->
+</project>
+----
+
+기존 아카이브는 패키지 단계에서 Spring Boot에 의해 향상된다. 실행할 기본 클래스는 구성 옵션을 사용하거나 일반적인 방법으로 Main-Class 특성을 매니페스트에 추가하여 지정할 수 있다. 메인 클래스를 지정하지 않으면, 플러그인은 public static void main(String[] args) 메소드를 가진 클래스를 검색한다.
+
+프로젝트 산출물을 빌드하고 실행하려면 다음을 입력하시오:
+
+[source,bash]
+----
+$ mvn package
+$ java -jar target/mymodule-0.0.1-SNAPSHOT.jar
+----
+
+실행 가능하고 외부 컨테이너에 배치 가능한 war 파일을 빌드하려면 다음 예와 같이 내장 컨테이서 의존성을 "provided"로 표시해야 한다.
+
+[source,xml]
+----
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <!-- ... -->
+    <packaging>war</packaging>
+    <!-- ... -->
+    <dependencies>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-tomcat</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <!-- ... -->
+    </dependencies>
+</project>
+----
+
+[TIP]
+====
+배포 가능한 war 파일을 만드는 방법에 대한 자세한 내용은 "섹션 91.1, "배포 가능한 war 파일 만들기"" 섹션을 참조하시오.
+====
+
+고급 구성 옵션 및 예제는 https://docs.spring.io/spring-boot/docs/2.1.0.BUILD-SNAPSHOT/maven-plugin[플러그인 정보 페이지]에서 확인할 수 있다.
+
+== 71. Spring Boot Gradle 플러그인
+Spring Boot Gralde 플러그인은 Gradle에서 Spring Boot 지원을 제공하여 실행 가능한 jar 또는 war 아카이브를 패키징하고, Spring Boot application을 실행하며, spring-boot-dependencies가 제공하는 의존성 관리를 사용한다. Gradle 4.0 이상을 요구한다. 자세한 내용은 플러그인 문서를 참조하시오:
+
+* 레퍼런스 (https://docs.spring.io/spring-boot/docs/2.1.0.BUILD-SNAPSHOT/gradle-plugin/reference/html[HTML]과 https://docs.spring.io/spring-boot/docs/2.1.0.BUILD-SNAPSHOT/gradle-plugin/reference/pdf/spring-boot-gradle-plugin-reference.pdf[PDF])
+
+* https://docs.spring.io/spring-boot/docs/2.1.0.BUILD-SNAPSHOT/gradle-plugin/api[API]
+
+== 72. Spring Boot AntLib 모듈
+Spring Boot AntLib 모듈은 Apache Ant에 대한 기본적인 Spring Boot 지원을 제공한다. 모듈을 사용하여 실행 가능한 jar를 작성할 수 있다. 이 모듈을 사용하려면 다음 예와 같이 build.xml에 spring-boot 네임스페이스를 추가로 선언해야 한다:
+
+[source,xml]
+----
+<project xmlns:ivy="antlib:org.apache.ivy.ant" xmlns:spring-boot="antlib:org.springframework.boot.ant" name="myapp"
+    default="build">
+    ...
+</project>
+----
+
+다음 예제와 같이 -lib 옵션을 사용하여 Ant를 시작해야 한다:
+
+[source,bash]
+----
+$ ant -lib <folder containing spring-boot-antlib-2.1.0.BUILD-SNAPSHOT.jar>
+----
+
+[TIP]
+====
+"Spring Boot 사용하기" 섹션에는 spring-boot-antlib와 함께 Apache Ant를 사용하는 예가 포함되어 있다.
+====
+
+== 72.1 Spring Boot Ant 작업들
+spring-boot-antlib 네임스페이스가 선언되면 다음과 같은 추가 작업을 사용할 수 있다:
+
+* "spring-boot:exejar" 섹션
+
+* 섹션 72.2 "spring boot:findmainclass"
+
+=== spring-boot:exejar
+exejar 작업(task)을 사용하여 Spring Boot 실행 가능한 jar를 작성할 수 있다ㅏ. 다음 특성이 작업에서 지원된다:
+
+|===
+|속성 |설명 |필수
+|destfile |생성할 destination jar 파일 |Yes
+|classes |Java 클래스 파일들의 루트 디렉토리 |Yes
+|start-class |실행할 메인 application 클래스 |No (기본 메서드는 main 메서드를 선언한 첫 번째 클래스이다.)
+|===
+
+다음 중첩 요소를 작업과 함께 사용할 수 있다:
+
+|===
+|요소 |설명
+|resources |생성된 jar 파일의 내용에 추가해야 하는 http://ant.apache.org/manual/Types/resources.html[리소스] 집합을 설명하는 하나 이상의 http://ant.apache.org/manual/Types/resources.html#collection[리소스 컬렉션]
+|lib |application 런타임 의존성 클래스 경로를 구하는 jar 라이브러리 집합에 추가해야 하는 하나 이상의 http://ant.apache.org/manual/Types/resources.html#collection[리소스 컬렉션]
+|===
+
+=== 예제
+이 섹션에는 두 가지의 Ant 작업 예제가 있다.
+
+=== 시작 클래스 지정
+[source,xml]
+----
+<spring-boot:exejar destfile="target/my-application.jar" classes="target/classes" start-class="com.example.MyApplication">
+    <resources>
+        <fileset dir="src/main/resources" />
+    </resources>
+    <lib>
+        <fileset dir="lib" />
+    </lib>
+</spring-boot:exejar>
+----
+
+=== 시작 클래스 검색
+[source,xml]
+----
+<exejar destfile="target/my-application.jar" classes="target/classes">
+    <lib>
+        <fileset dir="lib" />
+    </lib>
+</exejar>
+----
+
+== 72.2 spring-boot:findmainclass
+findmainclass 작업은 exejar가 내부적으로 main을 선언하는 클래스를 찾는데 사용된다. 필요한 경우 빌드에서 이 작업을 직접 사용할 수 있다. 다음 속성들이 지원된다:
+
+|===
+|속성 |설명 |필수
+|classesroot |Java 클래스 파일들의 루트 디렉토리 |Yes (메인 클래스가 지정되지 않는 경우)
+|mainclass |메인 클래스 검색을 단락(short-circuit)하는 데 사용할 수 있다. |No
+|property |결과와 함께 설정해야 하는 Ant 속성 |No (지정하지 않으면 결과가 기록된다.)
+|===
+
+=== 예제
+이 섹션에서는 findmainclass 사용의 세 가지 예제가 있다.
+
+=== Find and log.
+[source,xml]
+----
+<findmainclass classesroot="target/classes" /
+----
+
+=== Find and set.
+[source,xml]
+----
+<findmainclass classesroot="target/classes" property="main-class" />
+----
+
+=== Override and set.
+[source,xml]
+----
+<findmainclass mainclass="com.example.MainClass" property="main-class" />
+----
+
+== 73. 다른 빌드 시스템 지원
+Maven, Gradle 또는 Ant 이외의 빌드 도구를 사용하려면 자체 플러그인을 개발해야 한다. 실행 가능한 jar는 특정 형식을 따라야하며 특정 항목은 압축되지 않은 형식으로 작성되어야 한다. (자세한 내용은 부록의 "실행 가능한 jar 형식" 섹션 참조)
+
+Spring Boot Maven과 Gradle 플러그인은 모두 spring-boot-loader-tools를 사용하여 jar 파일을 생성한다. 필요한 경우 이 라이브러리를 직접 사용할 수 있다.
+
+== 73.1 아카이브 리패키징
+기존 아카이브를 자체 포함된 실행 가능한 아카이브가 되도록 리패키징하려면 org.springframework.boot.loader.tools.Repackager를 사용하시오. Repackager 클래스는 기존 jar 또는 war 아카이브를 참조하는 단일 생성자 인수를 사용한다. 사용 가능한 두 가지 repackage() 메서드 중 하나를 사용하여 원본 파일을 바꾸거나 새 대상에 작성하시오. 리패키징을 실행하기 전에 다양한 설정을 구성할 수도 있다.
+
+== 73.2 중첩 라이브러리들
+아카이브를 리패키징할 때, org.springframework.boot.loader.tools.Libraries 인터페이스를 사용하여 의존성 파일에 대한 참조를 포함시킬 수 있다. 일반적으로 라이브러리는 빌드 시스템별로 다르므로 여기에 구체적인 라이브러리 구현을 제공하지 않는다.
+
+아카이브에 이미 라이브러리가 포함되어 있으면 Libraries.NONE을 사용할 수 있다.
+
+== 73.3 Main Class 찾기
+Repackager.setMainClass()를 사용하여 메인 클래스를 지정하지 않으면 repackager는 ASM을 사용하여 클래스 파일을 읽고 public static void main(String[] args) 메서드를 이용하여 적합한 클래스를 찾는다. 둘 이상의 후보가 발견되면 예외가 발생한다.
+
+== 73.4 리패키지 구현 예제
+다음 예는 일반적인 리패키지 구현을 보여준다:
+
+[source,java]
+----
+Repackager repackager = new Repackager(sourceJarFile);
+repackager.setBackupSource(false);
+repackager.repackage(new Libraries() {
+    @Override
+    public void doWithLibraries(LibraryCallback callback) throws IOException {
+      // 빌드 시스템별 구현, 의존성에 대한 콜백
+      // callback.library(new Library(nestedFile, LibraryScope.COMPILE));
+    }
+  });
+ ----
+
+
+ 74. 다음에 읽을 내용
+ 빌드 툴 플러그인이 어떻게 작동하는지 관심이 있다면, GitHub의 https://github.com/spring-projects/spring-boot/tree/master/spring-boot-project/spring-boot-tools[spring-boot-tools] 모듈을 볼 수 있다. 실행 가능한 jar 형식에 대한 자세한 기술 정보는 부록에서 다룬다.
+
+ 구체적인 빌드 관련 질문이 있는 경우 "사용법" 가이드를 확인할 수 있다.
