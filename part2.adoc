@@ -1,4 +1,5 @@
 = Part II. 시작하기
+
 Spring Boot 또는 "Spring"을 처음 시작한다면 이 세션을 읽으세요. 이 세션에서 "무엇?", "어떻게?", "왜?"라는 기본적인 질문들에 대한 답을 한다. 여기에는 설치 지침과 함께 Spring Boot에 대한 소개가 포함되어 있다. 그런 다음 첫 번째 Spring Boot Application을 구축하는 과정을 안내하고 몇가지 핵심 원칙에 대해 논의 할 것이다.
 
 == 8. Spring Boot 소개
