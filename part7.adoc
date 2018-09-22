@@ -1,0 +1,361 @@
+= Part VII. Spring Boot CLI
+
+Spring Boot CLI는 Spring application을 신속하게 개발하고자 할 때 사용할 수 있는 커맨드라인 툴이다. Groovy 스크립트를 사용할 수 있어 상용어구 코드 없이 친숙한 Java 형태의 구문을 사용할 수 있다. 또한 새 프로젝트를 부트스트랩하거나 직접 명령어를 작성할 수 있다.
+
+== 65. CLI 설치하기
+Spring Boot CLI(커맨드라인 인터페이스)는 SDKMAN!(SDK Manager)를 사용하거나 OSX 사용자인 경우 Homebrew 또는 MacPorts를 사용하여 수동으로 설치할 수 있다. 포괄적인 설치 지침은 섹션 10.2, "시작하기" 세션의 "Spring Boot CLI 실치하기"을 참조하시오.
+
+== 66. CLI 사용하기
+CLI를 설치한 후 spring을 입력하고 커맨드라인에서 Enter 키를 눌러 CLI를 실행할 수 있다. 인수 없이 spring을 실행하면 다음과 같이 간단한 도움말 화면이 표시된다:
+
+[source,bash]
+----
+$ spring
+usage: spring [--help] [--version]
+        <command> [<args>]
+
+Available commands are:
+
+  run [options] <files> [--] [args]
+    Run a spring groovy script
+
+  ... more command help is shown here
+----
+
+다음 예제와 같이 spring help를 입력하면 지원되는 명령에 대한 자세한 내용을 볼 수 있다:
+
+[source,bash]
+----
+$ spring help run
+spring run - Run a spring groovy script
+
+usage: spring run [options] <files> [--] [args]
+
+Option                         Description
+------                         -----------
+--autoconfigure [Boolean]      Add autoconfigure compiler
+                                 transformations (default: true)
+--classpath, -cp               Additional classpath entries
+-e, --edit                     Open the file with the default system
+                                 editor
+--no-guess-dependencies        Do not attempt to guess dependencies
+--no-guess-imports             Do not attempt to guess imports
+-q, --quiet                    Quiet logging
+-v, --verbose                  Verbose logging of dependency
+                                 resolution
+--watch                        Watch the specified file for changes
+----
+
+다음과 같이 version 명령을 사용하면 사용중인 spring boot 버전을 빠르게 확인할 수 있다:
+
+[source,bash]
+----
+$ spring version
+Spring CLI v2.1.0.BUILD-SNAPSHOT
+----
+
+== 66.1 CLI를 사용하여 Application 실행하기
+run 명령을 사용하여 Groovy 소스 코드를 컴파일하고 실행할 수 있다. Spring Boot CLI는 완전히 완전히 포함하고 있어 외부 Groovy 설치가 필요 없다.
+
+다음 예는 Groovy에서 작성된 "hello world" web application을 보여준다:
+
+*hello.groovy.*
+
+[source,java]
+----
+@RestController
+class WebApplication {
+
+@RequestMapping("/")
+  String home() {
+    "Hello World!"
+  }
+
+}
+----
+
+applicaion을 컴파일하고 실행하려면 다음 명령을 입력하시오:
+
+[source,bash]
+----
+$ spring run hello.groovy
+----
+
+application에 커맨드라인 인수를 전달하려면 다음 예와 같이 -를 사용하여 "spring" 커맨드라인에서 명령을 분리하시오:
+
+[source,bash]
+----
+$ spring run hello.groovy -- --server.port=9000
+----
+
+JVM 커맨드라인 인수를 설정하려면 다음 예제와 같이 JAVA_OPTS 환경변수를 사용할 수 있다:
+
+[source,bash]
+----
+$ JAVA_OPTS=-Xmx1024m spring run hello.groovy
+----
+
+[NOTE]
+====
+Microsoft Windows에서 JAVA_OPTS를 설정할 때는 "JAVA_OPTS=-Xms256m -Xmx2048m"과 같이 전체 명령(instruction)을 써야한다. 이렇게 하면 값이 프로세스에 적절하게 전달된다.
+====
+
+=== "grab" 의존성 추론(deduced)
+표준 Groovy에는 서드파티 라이브러리에 대한 의존성을 선언할 수 있는 @Grab 어노테이션이 포함되어 있다. 이 기술을 통해 Groovy는 Maven이나 Gradle과 같은 방법으로 빌드 툴을 사용할 필요 없이 jar 파일을 다운로드할 수 있다
+
+Spring Boot는 이 기술을 확장하여 코드 기반으로 "grab" 라이브러리를 추론한다. 예를 들어 이전에 보여준 WebApplication 코드는 @RestController 어노테이션을 사용하기 때문에 Spring Boot는 "Tomcat"과 "Spring MVC"를 가져온다.
+
+다음 항목은 "grab 힌트"로 사용된다:
+
+|===
+|*Items* |*Grabs*
+|JdbcTemplate,
+
+NamedParameterJdbcTemplate,
+
+DataSource |JDBC Application.
+|@EnableJms |JMS Application.
+|@EnableCaching |Caching abstraction.
+|@Test |JUnit.
+|@EnableRabbit |RabbitMQ.
+|extends Specification |Spock test.
+|@EnableBatchProcessing |Spring Batch
+|@MessageEndpoint @EnableIntegration |Spring Integration.
+|@Controller @RestController
+
+@EnableWebMvc |Spring MVC + Embedded Tomcat.
+|@EnableWebSecurity |Spring Security
+|@EnableTransactionManagement |Spring Transaction Management.
+|===
+
+[TIP]
+====
+Spring Boot CLI 소스 코드에서 https://github.com/spring-projects/spring-boot/tree/master/spring-boot-project/spring-boot-cli/src/main/java/org/springframework/boot/cli/compiler/CompilerAutoConfiguration.java[CompilerAutoConfiguration]의 하위 클래스를 보면 커스터마이징이 어떻게 적용되는지 정확하게 이해할 수 있다.
+====
+
+=== "grab" 좌표(Coordinates) 추론
+Spring Boot는 그룹이나 버전 없이 의존성을 지정하여 Groovy의 표준 @Grab 지원을 확장한다.(예: @Grab("freemaker")) 이 작업은 Spring Boot의 기본 의존성 메타 테이터를 참조하여 artifact의 그룹 및 버전을 초론한다.
+
+[NOTE]
+====
+기본 메타 데이터는 사용하는 CLI 버전에 연결된다. 새 버전의 CLI로 이동할 때만 변경되며 의존성의 버전이 변경될 수 있는 시기를 제어할 수 있다. 부록에서 기본 메타 데이터에 포함된 의존성과 해당 버전을 보여주는 표를 확인할 수 있다.
+====
+
+=== 기본 Import 문구(Statements)
+Groovy 코드의 크기를 줄이기 위해 여러 import 문이 자동으로 포함된다. 앞의 예제에서 정규화된 이름 또는 import 문구를 사용하지 않고 @Component, @RestController 및 @RequestMapping을 어떻게 참조하는지 잘 보시오.
+
+[TIP]
+====
+많은 Spring 어노테이션은 import 구문을 사용하지 않고 작동한다. import를 추가하기 전에 application을 실행하여 실패한 작업을 확인하시오.
+====
+
+=== 자동 메인 메소드
+동등한 Java application과 달리 Groovy 스크립트에는 public static void main(String[] args) 메소드를 포함할 필요가 없다. 컴파일된 코드를 소스로 사용하여 SpringApplication이 자동으로 생성된다.
+
+=== 커스텀 의존성 관리
+기본적으로 CLI는 @Grab 의존성을 해결할 때 spring-boot-dependencies에 선언된 의존성 관리를 사용한다. @DependencyManagementBom 어노테이션을 사용하여 기본 의존성 관리를 대ㅔ하는 추가 의존성 관리를 구성할 수 있다. 어노테이션의 값은 하나 이상의 Maven BOM의 좌표(coordinates)(groupId:artifactId:version)를 지정해야 한다.
+
+예를 들어 다음을 보시오:
+[source,java]
+----
+@DependencyManagementBom("com.example.custom-bom:1.0.0")
+----
+
+위 선언은 com/example/custom-vesions/1.0.0/ 아래 Maven 저장소에서 custom-bom-1.0.0.pom을 선택한다.
+
+여러개의 BOM을 지정하면 다음 예제와 같이 BOM을 선언한 순서대로 적용된다:
+
+[source,java]
+----
+@DependencyManagementBom(["com.example.custom-bom:1.0.0"
+  "com.example.another-bom:1.0.0"])
+----
+
+앞의 예는 another-bom의 의존성 관리가 custom-bom의 의존성 관리를 오버라이드한 것을 나타낸다.
+
+@Grab을 사용할 수 있는 모든 곳에서 @DependencyManagementBom을 사용할 수 있다. 그러나 의존성 관리의 순서를 일관되게 유지하려면 application에서 @DependencyManagementBom을 한 번만 사용할 수 있다. 다음 라인에 포함할 수 있는 http://platform.spring.io/[Spring IO 플랫폼]이 의존성 관리의 유용한 소스(Spring Boot 의존성 관리의 슈퍼셋(superset))이다.
+
+[source,java]
+----
+@DependencyManagementBom('io.spring.platform:platform-bom:1.1.2.RELEASE')
+----
+
+== 66.2 여러 소스 파일이 있는 Applications
+파일 입력을 허용하는 모든 명령에 "shell globbing"을 사용할 수 있다. 이렇게하면 다음 예와 같이 단일 디렉토리에서 여러 파일을 사용할 수 있다.
+
+[source,bash]
+----
+$ spring run *.groovy
+----
+
+== 66.3 Application 패키징하기
+다음 예제와 같이 jar 명령을 사용하여 application을 자체 포함된 실행 가능 jar 파일로 패키징할 수 있다.
+
+[source,bash]
+----
+$ spring jar my-app.jar *.groovy
+----
+
+결과 jar에는 application 및 모든 application의 의존성을 컴파일하여 생성된 클래스가 포함되어 있어 java -jar를 사용하여 실행할 수 있다. jar 파일에는 application의 클래스 경로에 있는 항목도 들어있다. --include 및 --exclude를 사용하여 jar에 대한 명시적 경로를 추가 및 제거할 수 있다. 둘 다 쉼표로 구분되며 접두어를 "+" 및 "-" 형식으로 받아 기본값에서 제거해야 함을 나타낸다. 기본값은 다음과 같다:
+
+[source,bash]
+----
+public/**, resources/**, static/**, templates/**, META-INF/**, *
+----
+
+기본 제외(exclude) 항목은 다음과 같다:
+
+[source,bash]
+----
+.*, repository/**, build/**, target/**, **/*.jar, **/*.groovy
+----
+
+커맨드라인에 spring help jar를 입력하여 자세한 정보를 확인할 수 있다.
+
+== 66.4 새 프로젝트 초기화
+init 명령을 사용하면 다음 예제와 같이 shell에서 나가지 않고 start.spring.io를 사용하여 새 프로젝트를 만들 수 있다.
+
+[source,bash]
+----
+$ spring init --dependencies=web,data-jpa my-project
+Using service at https://start.spring.io
+Project extracted to '/Users/developer/example/my-project'
+----
+
+앞의 예제는 spring-boot-startter-web과 spring-boot-startter-data-jpa를 사용하는 Maven 기반 프로젝트로 my-project 디렉토리를 생성한다. 다음 예와 같이 --list 플래그를 사용하여 서비스의 기능을 나열할 수 있다:
+
+[source,bash]
+----
+$ spring init --list
+=======================================
+Capabilities of https://start.spring.io
+=======================================
+
+Available dependencies:
+-----------------------
+actuator - Actuator: Production ready features to help you monitor and manage your application
+...
+web - Web: Support for full-stack web development, including Tomcat and spring-webmvc
+websocket - Websocket: Support for WebSocket development
+ws - WS: Support for Spring Web Services
+
+Available project types:
+------------------------
+gradle-build - Gradle Config [format:build, build:gradle]
+gradle-project - Gradle Project [format:project, build:gradle]
+maven-build - Maven POM [format:build, build:maven]
+maven-project - Maven Project [format:project, build:maven] (default)
+
+...
+----
+
+init 명령은 많은 옵션을 지원한다. 자세한 내용은 help 출력을 참조하시오. 예를 들어 다음 명령은 Java 8 및 war 패키징을 사용하는 Gradle 프로젝트를 만든다.
+
+[source,bash]
+----
+$ spring init --build=gradle --java-version=1.8 --dependencies=websocket --packaging=war sample-app.zip
+Using service at https://start.spring.io
+Content saved to 'sample-app.zip'
+----
+
+== 66.5 내장 쉘 사용하기
+Spring Boot에는 BASH 및 zsh 쉘용 커맨드라인 스크립트가 포함되어 있다. 이 쉘중 하나를 사용하지 않는 경우(Windows 사용자일 경우) 다음 예와 같이 쉘 명령을 사용하여 통합 쉘을 시작할 수 있다:
+
+[source,bash]
+----
+$ spring shell
+Spring Boot (v2.1.0.BUILD-SNAPSHOT)
+Hit TAB to complete. Type \'help' and hit RETURN for help, and \'exit' to quit.
+----
+
+내장된 쉘 내에서 다른 명령을 직접 실행할 수 있다:
+
+[source,bash]
+----
+$ version
+Spring CLI v2.1.0.BUILD-SNAPSHOT
+----
+
+내장된 쉘은 탭 완성뿐 아니라 ANSI 색상 출력도 지원한다. 기본 명령을 실행해야 하는 경우 !접두사를 사용할 수 있다. 내장된 쉘을 종료하려면 ctrl-c를 누르면 된다.
+
+== 66. CLI에 확장(Extensions) 추가하기
+install 명령을 사용하여 CLI에 확장을 추가할 수 있다. 이 명령은 다음 예제와 같이 하나 이상의 artifact 좌표(coordinates) 집합을 group:artifact:version 형식으로 사용한다:
+
+[source,bash]
+----
+$ spring install com.example:spring-boot-cli-extension:1.0.0.RELEASE
+----
+
+제공한 좌표(coordinates)로 식별된 artifact를 설치하는 것 외에도, 모든 의존성도 설치된다.
+
+의존성을 제거하려면 uninstall 명령을 사용하시오. isntall 명령과 마찬가지로 다음 예제와 같이 group:artifact:version 형식으로 하나 이상의 artifact 좌표(coordinates) 집합을 사용한다.
+
+[source,bash]
+----
+$ spring uninstall com.example:spring-boot-cli-extension:1.0.0.RELEASE
+----
+
+제공한 좌표(coordinates)와 의존성으로 식별된 artifact가 제거된다.
+
+다음 예제와 같이 --all 옵션을 사용하여 추가 의존성을 모두 제거할 수 있다:
+
+[source,bash]
+----
+$ spring uninstall --all
+----
+
+== 67. Groovy Beans DSL로 Application 개발하기
+
+Spring Framework 4.0은 Bean {} "DSL"(http://grails.org/[Grails]에서 차용한)을 기본적으로 지원하며 동일한 형식을 사용하여 Groovy application 스크립트에 bean 정의를 내장할 수 있다. 다음 예제와 같이 미들웨어 선언과 같은 외부 기능을 포함하는 것이 좋다:
+
+[source,java]
+----
+@Configuration
+class Application implements CommandLineRunner {
+
+  @Autowired
+  SharedService service
+
+  @Override
+  void run(String... args) {
+    println service.message
+  }
+
+}
+
+import my.company.SharedService
+
+beans {
+  service(SharedService) {
+    message = "Hello World"
+  }
+}
+----
+
+클래스 선언이 최상위 수준에 있는 한 동일한 파일에서 빈{}과 같이 사용할 수 있으며, 원하는 경우 Bean DSL을 별도의 파일에 넣을 수 있다.
+
+== 68. setting.xml을 사용하여 CLI 구성
+Spring Boot CLI는 Maven의 의존성 해결(resolution) 엔진인 Aether를 사용하여 의존성을 해결한다. CLI는 ~/.m2/settings.xml에 있는 Maven 구성을 사용하여 Aether를 구성한다. CLI는 다음 구성 설정을 준수한다:
+
+* Offline
+
+* Mirrors
+
+* Servers
+
+* Proxies
+
+* Profiles
+
+  * Activation
+
+  * Repositories
+
+* Active Profiles
+
+자세한 정보는 https://maven.apache.org/settings.html[Maven 설정 문서]를 참조하시오.
+
+== 69. 다음에 읽을 내용
+GitHub 저장소에서 Spring Boot CLI를 사용해 볼 수 있는 몇 가지 https://github.com/spring-projects/spring-boot/tree/master/spring-boot-project/spring-boot-cli/samples[샘플 groovy 스크립트]들이 있다. 또한 https://github.com/spring-projects/spring-boot/tree/master/spring-boot-project/spring-boot-cli/src/main/java/org/springframework/boot/cli[소스 코드] 전체에 걸쳐 광범위한 Javadoc도 있다.
+
+CLI 툴의 한계에 이르면 application을 Gradle 또는 Maven이 빌드 된 "Groovy 프로젝트"로 변환하는 것이 좋다. 다음 섹션에서는 Gradle 또는 Maven에서 사용할 수 있는 Spring Boot의 "빌드 툴 플러그인들"에 대해 설명한다.
