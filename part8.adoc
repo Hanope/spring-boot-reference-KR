@@ -10,7 +10,7 @@ https://docs.spring.io/spring-boot/docs/2.1.0.BUILD-SNAPSHOT/maven-plugin[Spring
 완전한 플러그인 문서는 https://docs.spring.io/spring-boot/docs/2.1.0.BUILD-SNAPSHOT/maven-plugin[Spring Boot Maven 플러그인 사이트]를 참조하시오.
 ====
 
-== 70.1 플러그인 포힘하기
+== 70.1 플러그인 포함하기
 Spring Boot Maven 플러그인을 사용하려면, 다음 예제와 같이 pom.xml의 plugins 섹션에 적절한 XML을 포함하시오:
 
 [source,xml]
@@ -271,10 +271,10 @@ repackager.repackage(new Libraries() {
       // callback.library(new Library(nestedFile, LibraryScope.COMPILE));
     }
   });
- ----
+----
 
 
- 74. 다음에 읽을 내용
- 빌드 툴 플러그인이 어떻게 작동하는지 관심이 있다면, GitHub의 https://github.com/spring-projects/spring-boot/tree/master/spring-boot-project/spring-boot-tools[spring-boot-tools] 모듈을 볼 수 있다. 실행 가능한 jar 형식에 대한 자세한 기술 정보는 부록에서 다룬다.
+== 74. 다음에 읽을 내용
+빌드 툴 플러그인이 어떻게 작동하는지 관심이 있다면, GitHub의 https://github.com/spring-projects/spring-boot/tree/master/spring-boot-project/spring-boot-tools[spring-boot-tools] 모듈을 볼 수 있다. 실행 가능한 jar 형식에 대한 자세한 기술 정보는 부록에서 다룬다.
 
- 구체적인 빌드 관련 질문이 있는 경우 "사용법" 가이드를 확인할 수 있다.
+구체적인 빌드 관련 질문이 있는 경우 "사용법" 가이드를 확인할 수 있다.
