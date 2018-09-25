@@ -1,0 +1,580 @@
+= Part VI. Spring Boot Application 배포하기
+
+Spring Boot의 유연한 패키징 옵션은 application을 배포할 때 다양한 옵션을 제공한다. Spring Boot application을 다양한 클라우드 플랫폼, 컨테이너 이미지(예: Docker) 또는 가상/실제 시스템에 배포할 수 있다.
+
+이 섹션에서는 보다 일반적인 구축 시나리오에 대해 설명한다.
+
+== 62. Cloud에 배포하기
+Spring Boot의 실행 가능한 jar는 가장 널리 사용되는 PaaS (Platform-as-a-Service) 공급자를 위한 기성품이다. 이런 공급자는 "자신의 컨테이터 가져오기"를 요구하는 경향이 있다. application 프로세스 (Java application이 아닌)를 관리하므로 application을 클라우드의 실행 프로세스 개념에 맞게 조정하는 중간 계층이 필요하다.
+
+두 개의 유명한 클라우드 공급자인 Heroku와 Cloud Foundry는 "빌드팩" 방식을 사용한다. buildpack은 배포된 코드를 application을 시작하는 데 필요한 모든 것으로 랩핑한다. 그것은 JDK 및 Java, 내장된 웹 서버 또는 전체 application 서버일 수 있다. 빌드팩은 플러그(pluggable)가 가능하지만 이상적으로 가능한 한 사용자 정의 기능을 사용하지 않아야 한다. 이렇게 하면 제어할 수 없는 기능의 공간이 줄어든다. 개발 환경과 생산 환경의 차이를 최소화한다.
+
+이상적으로 Spring Boot 실행 가능한 jar와 같은 application은 실행하는 데 필요한 모든 것을 갖추고 있다.
+
+이 섹션에서는 "시작하기" 섹션에서 개발한 간단한 application을 클라우드에서 실행하는 데 필요한 작업을 살펴본다.
+
+== 62.1 Cloud Foundry
+Cloud Foundry는 다른 필드팩이 지정되지 않은 경우 실행되는 기본 빌드팩을 제공한다. Cloud Foundry https://github.com/cloudfoundry/java-buildpack[Java buildpack]은 Spring Boot를 포함한 Spring application을 훌륭하게 지원한다. 독립형 실행 가능한 jar application은 물론 기존의 .war 패키지 application을 배포할 수 있다.
+
+application을 빌드하고(예를 들어 mvn clean package 사용) https://docs.cloudfoundry.org/cf-cli/install-go-cli.html[cf 커맨드라인 도구를 설치]했으면 cf push 명령을 사용하여 .jar의 경로를 대체하여 application을 배포한다. application을 푸시하기 전에 https://docs.cloudfoundry.org/cf-cli/getting-started.html#login[cf 커맨드라인 클라이언트로 로그인했는지 확인]하시오. 다음은 cf push 명령을 사용하여 application 배포하는 것을 보여준다:
+
+[source,bash]
+----
+$ cf push acloudyspringtime -p target/demo-0.0.1-SNAPSHOT.jar
+----
+
+[NOTE]
+====
+위 예제에서 application의 이름을 acloudyspringtime으로 사용했다.
+====
+
+자세한 옵션은 https://docs.cloudfoundry.org/cf-cli/getting-started.html#push[cf push 문서]를 참조하시오. 동일한 디렉토리에 Cloud Foundry https://docs.cloudfoundry.org/devguide/deploy-apps/manifest.html[manifest.yml] 파일이 존재하는 경우 해당 파일이 사용된다.
+
+cf는 application 업로드를 시작하여 다음과 같은 출력은 확인할 수 있다:
+
+[source,bash]
+----
+Uploading acloudyspringtime... OK
+Preparing to start acloudyspringtime... OK
+-----> Downloaded app package (8.9M)
+-----> Java Buildpack Version: v3.12 (offline) | https://github.com/cloudfoundry/javabuildpack.git#6f25b7e
+-----> Downloading Open Jdk JRE 1.8.0_121 from https://java-buildpack.cloudfoundry.org/openjdk/trusty/
+x86_64/openjdk-1.8.0_121.tar.gz (found in cache)
+       Expanding Open Jdk JRE to .java-buildpack/open_jdk_jre (1.6s)
+-----> Downloading Open JDK Like Memory Calculator 2.0.2_RELEASE from https://javabuildpack.cloudfoundry.org/memory-calculator/trusty/x86_64/memory-calculator-2.0.2_RELEASE.tar.gz
+(found
+ in cache)
+       Memory Settings: -Xss349K -Xmx681574K -XX:MaxMetaspaceSize=104857K -Xms681574K -
+XX:MetaspaceSize=104857K
+-----> Downloading Container Certificate Trust Store 1.0.0_RELEASE from https://javabuildpack.cloudfoundry.org/container-certificate-trust-store/container-certificate-truststore-1.0.0_RELEASE.jar
+(found in cache)
+       Adding certificates to .java-buildpack/container_certificate_trust_store/truststore.jks (0.6s)
+-----> Downloading Spring Auto Reconfiguration 1.10.0_RELEASE from https://javabuildpack.cloudfoundry.org/auto-reconfiguration/auto-reconfiguration-1.10.0_RELEASE.jar
+(found in cache)
+Checking status of app 'acloudyspringtime'...
+  0 of 1 instances running (1 starting)
+  ...
+  0 of 1 instances running (1 starting)
+  ...
+  0 of 1 instances running (1 starting)
+  ...
+  1 of 1 instances running (1 running)
+
+App started
+----
+
+application이 현재 실행중이다!
+
+application이 실행되면 다음 예제와 같이 cf apps 명령을 사용하여 배포된 application의 상태를 확인할 수 있다.
+
+[source,bash]
+----
+$ cf apps
+Getting applications in ...
+OK
+
+name                requested state   instances   memory   disk   urls
+...
+acloudyspringtime   started           1/1         512M     1G     acloudyspringtime.cfapps.io
+...
+----
+
+Cloud Foundry가 application이 배포되었으면 해당 application에서 URI를 찾을 수 있다. 앞의 예에서 http://acloudspringtime.cfapps.io/를 확인할 수 있다.
+
+=== 서비스에 바인딩하기
+기본적으로 실행중인 application 및 서비스 연결 정보에 대한 메타 데이터는 환경변수(예: $VCAP_SERVICES)로 application에 노출된다. 이 아키텍처 결정은 Cloud Foundry의 다국어 (모든 언어 및 플랫폼을 빌드팩으로 지원할 수 있음) 특성 때문이다. 프로세스 범위 환경변수는 언어에 구애받지 않는다.
+
+환경변수가 항상 쉬운 API를 만드는 것이 아니기 때문에 Spring Boot는 자동으로 그들을 추출하고 Spring의 Environment 추상화를 통해 접근할 수 있는 속성으로 데이터를 평탄화(flatten)한다.
+
+[source,java]
+----
+@Component
+class MyBean implements EnvironmentAware {
+
+  private String instanceId;
+
+  @Override
+  public void setEnvironment(Environment environment) {
+    this.instanceId = environment.getProperty("vcap.application.instance_id");
+  }
+
+  // ...
+
+}
+----
+
+모든 Cloud Foundry 속성에는 vcap 접두어가 붙는다. vcap 프로퍼티를 사용하여 application정보(예를 들어 공개 URL) 및 서비스 정보(예를 들어 데이터베이스 자격 증명)에 엑세스할 수 있다. 자세한 내용은 https://docs.spring.io/spring-boot/docs/2.1.0.BUILD-SNAPSHOT/api/org/springframework/boot/cloud/CloudFoundryVcapEnvironmentPostProcessor.html['CloudFoundryVcapEnvironmentPostProcessor'] Javadoc을 참조하시오.
+
+[TIP]
+====
+Spring Cloud Connectors 프로젝트는 DataSource 구성과 같은 작업에 더 적합하다. Spring Boot에는 자동 구성 지원과 spring-boot-starter-cloudconnectors 스타터차 포함된다.
+====
+
+== 62.2 Heroku
+Heroku는 또 다른 인기있는 PaaS 플랫폼이다. Heroku 빌드를 사용자 정의하려면 application을 배포하는 데 필요한 주문(incantation)을 제공하는 Proc 파일을 제공해야 한다. Heroku는 Java application에 사용할 포트를 할당한 다음 외부 URI에 대한 라우팅을 작동하도록 한다.
+
+올바른 포트에서 수신하도록 application을 구성해야 한다. 다음 예제는 스타터 REST application의 Procfile을 보여준다:
+
+[source,bash]
+----
+web: java -Dserver.port=$PORT -jar target/demo-0.0.1-SNAPSHOT.jar
+----
+
+Spring Boot는 -D arguments를 Spring Environment 인스턴스에서 액세스할 수 있는 속성으로 사용할 수 있게한다. server.port 구성 프로퍼티는 내장형 Tomcat, Jetty 또는 Undertow 인스턴스에 제공되며, 이 인스턴스는 시작할 때 포트를 사용한다. $PORT 환경변수는 Heroku PaaS에 의해 할당된다.
+
+이게 필요한 전부이다. Heroku 배포를 위한 가장 일반적인 배포 워크플로(workflow)는 다음 예제와 같이 프로덕션의 코드를 git push로 배포하는 것이다.
+
+[source,bash]
+----
+$ git push heroku master
+
+Initializing repository, done.
+Counting objects: 95, done.
+Delta compression using up to 8 threads.
+Compressing objects: 100% (78/78), done.
+Writing objects: 100% (95/95), 8.66 MiB | 606.00 KiB/s, done.
+Total 95 (delta 31), reused 0 (delta 0)
+
+-----> Java app detected
+-----> Installing OpenJDK 1.8... done
+-----> Installing Maven 3.3.1... done
+-----> Installing settings.xml... done
+-----> Executing: mvn -B -DskipTests=true clean install
+
+       [INFO] Scanning for projects...
+       Downloading: https://repo.spring.io/...
+       Downloaded: https://repo.spring.io/... (818 B at 1.8 KB/sec)
+  ....
+       Downloaded: http://s3pository.heroku.com/jvm/... (152 KB at 595.3 KB/sec)
+       [INFO] Installing /tmp/build_0c35a5d2-a067-4abc-a232-14b1fb7a8229/target/...
+       [INFO] Installing /tmp/build_0c35a5d2-a067-4abc-a232-14b1fb7a8229/pom.xml ...
+       [INFO] ------------------------------------------------------------------------
+       [INFO] BUILD SUCCESS
+       [INFO] ------------------------------------------------------------------------
+       [INFO] Total time: 59.358s
+       [INFO] Finished at: Fri Mar 07 07:28:25 UTC 2014
+       [INFO] Final Memory: 20M/493M
+       [INFO] ------------------------------------------------------------------------
+
+-----> Discovering process types
+       Procfile declares types -> web
+
+-----> Compressing... done, 70.4MB
+-----> Launching... done, v6
+       http://agile-sierra-1405.herokuapp.com/ deployed to Heroku
+
+To git@heroku.com:agile-sierra-1405.git
+ * [new branch] master -> master
+----
+
+이제 application이 Heroku에서 실행된다.
+
+== 62.3 OpenShift
+OpenShift는 Kubernetes 컨테이너 오케스트레이션 플랫폼의 Red Hat 공개(및 엔터프라이즈) 확장(extension)이다. Kubernetes와 마찬가지로 OpenShift에는 Spring Boot 기반 application을 설치할 수 있는 많은 옵션이 있다.
+
+OpenShift에는 다음을 포함하여 Spring Boot application을 배포하는 방법을 설명하는 많은 리소스가 있다:
+
+* https://blog.openshift.com/using-openshift-enterprise-grade-spring-boot-deployments/[S2I 빌더 사용하기]
+
+* https://access.redhat.com/documentation/en-us/reference_architectures/2017/html-single/spring_boot_microservices_on_red_hat_openshift_container_platform_3/[아키텍쳐 가이드]
+
+* https://blog.openshift.com/using-spring-boot-on-openshift/[Wildfly에서 전통적인 web application 실행하기]
+
+* https://blog.openshift.com/openshift-commons-briefing-96-cloud-native-applications-spring-rhoar/[OpenShift Commons Briefing]
+
+== 62.4 Amazon Web Services (AWS)
+Amazon Web Services는 기존 web application (war) 또는 내장 웹 서버가 있는 실행 가능한 jar 파일로 Spring Boot 기반 application을 설치하는 여러가지 방법을 제공한다. 다음 사항이 옵션에 포함된다:
+
+* AWS Elastic Beanstalk
+
+* AWS Code Deploy
+
+* AWS OPS Works
+
+* AWS Cloud Formation
+
+* AWS Container Registry
+
+각각의 기능과 가격은 다르다. 이 문서에서는 가장 간단한 옵션인 AWS Elastic Beanstalk에 대해서만 설명한다.
+
+=== AWS Elastic Beanstalk
+공식 https://docs.aws.amazon.com/elasticbeanstalk/latest/dg/create_deploy_Java.html[Elastic Beanstalk Java 가이드]에 설명된 것 처럼 Java application을 배포하는 데 두 가지 옵션이 있다. "Tomcat Platform" 또는 "Java SE platform"을 사용할 수 있다.
+
+==== Tomcat Platform 사용하기
+이 옵션은 war 파일을 생성하는 Spring Boot 프로젝트에 적용된다. 특별한 구성은 필요 없으며 공식 가이드만 따르면 된다.
+
+==== Java SE Platorm 사용하기
+이 옵션은 jar 파일을 생성하고 내장 웹 컨테이너를 실행하는 Spring Boot 프로젝트에 적용된다. Elastic Beanstalk 환경은 포트 80에서 nginx 인스턴스를 실행하여 포트 5000에서 실행되는 실제 application을 프록시한다. 이를 구성하려면 application.properties 파일에 다음 행을 추가하시오:
+
+[source,bash]
+----
+server.port=5000
+----
+
+[subs=+quotes]
+....
+*소스 대신 바이너리 업로드*
+
+기본적으로 Elastic Beanstalk는 소스를 업로드하고 AWS에서 소르를 컴파일한다. 하지만 바이너리를 업로드하는 것이 가장 좋다. 이렇게하기 위해 다음을 ./elasticbeanstalk/config.yml 파일에 추가하시오:
+....
+[source,bash]
+----
+deploy:
+ artifact: target/demo-0.0.1-SNAPSHOT.jar
+----
+
+[subs=+quotes]
+....
+*environment 타입을 설정하여 비용 절감*
+
+기본적으로 Elastic Beanstalk 환경은 로드 밸런싱된다. 로드 밸런서는 상당한 비용이 든다. 이 비용을 방지하려면 Amazon 문서에 설명된 대로 환경 타입을 "단일 인스턴스"로 설정하시오. CLI 및 다음 명령을 사용하여 단일 인스턴스 환경을 생성할 수 있다.
+....
+[source,bash]
+----
+eb create -s
+----
+
+=== 요약
+이것은 AWS에 가장 쉽게 접근할 수 있는 방법 중 하나이지만 Elastic Beanstalk를 CI/CD 도구에 통합하는 방법, CLI 대신 Elastic Beanstalk Maven 플러그인을 사용하는 방법 등 여러 가지가 있다. 이 주제를 더 자세히 다루는 https://exampledriven.wordpress.com/2017/01/09/spring-boot-aws-elastic-beanstalk-example/[블로그 게시물]이 있다.
+
+== 62.5 Boxfuse 및 Amazon Web Services
+Boxfuse는 Spring Boot 실행 가능한 jar 또는 war를 Virtual Box 또는 AWS에서 변경없이 배포할 수 있는 최소의 VM 이미지로 변환한다. Boxfuse는 Spring Boot에 대한 깊은 통합(depp integration)과 함게 제공되며 Spring Boot 구성 파일의 정보를 사용하여 포트 및 상태 확인 URL을 자동으로 구성한다. Boxfuse는 제작하는 이미지뿐 아니라 프로비저닝하는 모든 리소스 (인스턴스, 보안 그룹, 탄력적인 로드 밸런서 등)에 대해 이 정보를 활용한다.
+
+https://console.boxfuse.com/[Boxfuse 계정]을 만들고, AWS 계정에 연결하고, 최신 버전의 Boxfuse Client를 설치하고, application이 Maven 또는 Gradle에 의해 작성되었는지 확인한 후(예를 들어 mvn clean package 사용) 다음 명령을 사용하여 Spring Boot application을 AWS에 배치하시오:
+
+[source,bash]
+----
+$ boxfuse run myapp-1.0.jar -env=prod
+----
+
+다른 옵션에 대해서는 https://boxfuse.com/docs/commandline/run.html[boxfuse 실행 문서]를 참조하시오. 현재 디렉토리에 https://boxfuse.com/docs/commandline/#configuration[boxfuse.conf] 파일이 있으면 해당 파일이 사용된다.
+
+[TIP]
+====
+기본적으로 Boxfuse는 시작시 boxfuse라는 Spring 프로파일을 활성화한다. 실행 가능한 jar 또는 war에 https://boxfuse.com/docs/payloads/springboot.html#configuration[application-boxfuse.properties] 파일이 포함되어 있는 경우 Boxfuse는 포함된 속성에 따라 구성을 설정한다.
+====
+
+이 시점에서 boxfuse는 application에 대한 이미지를 만들고 업로드 한 다음 AWS에서 필요한 리소스를 구성하고 시작하여 다음 예제와 같은 결과를 출력한다:
+
+[source,bash]
+----
+Fusing Image for myapp-1.0.jar ...
+Image fused in 00:06.838s (53937 K) -> axelfontaine/myapp:1.0
+Creating axelfontaine/myapp ...
+Pushing axelfontaine/myapp:1.0 ...
+Verifying axelfontaine/myapp:1.0 ...
+Creating Elastic IP ...
+Mapping myapp-axelfontaine.boxfuse.io to 52.28.233.167 ...
+Waiting for AWS to create an AMI for axelfontaine/myapp:1.0 in eu-central-1 (this may take up to 50
+ seconds) ...
+AMI created in 00:23.557s -> ami-d23f38cf
+Creating security group boxfuse-sg_axelfontaine/myapp:1.0 ...
+Launching t2.micro instance of axelfontaine/myapp:1.0 (ami-d23f38cf) in eu-central-1 ...
+Instance launched in 00:30.306s -> i-92ef9f53
+Waiting for AWS to boot Instance i-92ef9f53 and Payload to start at http://52.28.235.61/ ...
+Payload started in 00:29.266s -> http://52.28.235.61/
+Remapping Elastic IP 52.28.233.167 to i-92ef9f53 ...
+Waiting 15s for AWS to complete Elastic IP Zero Downtime transition ...
+Deployment completed successfully. axelfontaine/myapp:1.0 is up and running at http://myappaxelfontaine.boxfuse.io/
+----
+
+이제 application이 AWS에서 실행된다.
+
+https://boxfuse.com/blog/spring-boot-ec2.html[EC2에 Spring Boot app을 배포]에 대한 블로그 게시물과 https://boxfuse.com/docs/payloads/springboot.html[Boxfuse Spring Boot 통합]을 시작하기 위한 문서를 참조하시오.
+
+== 62.6 Google Cloud
+Google Cloud에는 Spring Boot application을 시작하는데 사용할 수 있는 몇 가지 옵션들이 있다. 가장 쉬운 방법은 App Engine이지만 Container Engine이 있는 컨테이너 또는 Compute Engine이 있는 가상 머신에서 Spring Boot를 실행하는 방법도 찾을 수 있다.
+
+App Engine에서 실행하기위해 먼저 UI에서 프로젝트를 만들 수 있다. UI는 고유한 식별자를 설정하고 HTTP 경로도 설정한다. Java app을 프로젝트에 추가하고 비워둔 다음 https://cloud.google.com/sdk/downloads[Google Cloud SDK]를 사용하여 Spring Boot app을 커맨드라인 또는 CI 빌드에서 해당 슬롯으로 푸시한다.
+
+App Engine Standard에서는 WAR 패키지를 사용해야 한다. App Engine Standard application을 Google Cloud에 배포하려면 https://github.com/GoogleCloudPlatform/getting-started-java/blob/master/appengine-standard-java8/springboot-appengine-standard/README.md[다음]을 따르시오.
+
+대안으로, App Engine Flex에서 app.yaml 파일을 만들어 app에 필요한 리소스를 추가한다. 일반적으로 이 파일은 src/main/appengine에 저장되며 다음 파일과 유사해야 한다:
+
+[source,yaml]
+----
+service: default
+
+runtime: java
+env: flex
+
+runtime_config:
+  jdk: openjdk8
+
+handlers:
+- url: /.*
+  script: this field is required, but ignored
+
+manual_scaling:
+  instances: 1
+
+health_check:
+  enable_health_check: False
+
+env_variables:
+  ENCRYPT_KEY: your_encryption_key_here
+----
+
+다음 예제와 같이 빌드 구성에 프로젝트 ID를 추가하여 app을 배포할 수 있다. (예: Maven 플러그인 사용)
+
+[source,xml]
+----
+<plugin>
+    <groupId>com.google.cloud.tools</groupId>
+    <artifactId>appengine-maven-plugin</artifactId>
+    <version>1.3.0</version>
+    <configuration>
+        <project>myproject</project>
+    </configuration>
+</plugin>
+----
+
+그런 다음 mvn appengine:deploy를 사용하여 배포한다. (먼저 인증해야하는 경우 빌드가 실패한다.)
+
+256p
+== 63. Spring Boot Application 설치하기
+java -jar를 사용하여 Spring Boot application을 실행하는 것 외에도 Unix 시스템용으로 실행 가능한 application을 만들 수 있다. 실행 가능한 jar는 다른 실행 가능한 바이너리처럼 실행되거나 init.d 또는 systemd로 등록할 수 있다. 따라서 일반적인 운영 환경에서 Spring Boot application을 쉽게 설치하고 관리할 수 있다.
+
+[subs=+quotes]
+....
+*주의*
+
+실행 가능한 jar는 파일 앞에 추가 스크립트를 내장하여 작동한다. 현재 일부 툴은 이 형식을 허용하지 않으므로 이 기술을 항상 사용할 수 없다. 예를 들어 jar -xf는 실행가능한 jar 또는 war를 자동으로 추출하지 못할 수 있다. jar 또는 war를 java -jar로 실행하거나 서블릿 컨테이너에 배포하는 대신 직접 실행하려는 경우에만 실행 가능한 jar 또는 war를 만들 것을 권장한다.
+....
+
+Maven을 사용하여 '완전히 실행 가능한' jar 파일을 만들려면 다음 플러그인을 구성을 사용하시오:
+
+[source,xml]
+----
+<plugin>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-maven-plugin</artifactId>
+    <configuration>
+        <executable>true</executable>
+    </configuration>
+</plugin>
+----
+
+다음 예제는 동일한 Gradle 구성을 보여준다:
+
+[source,gradle]
+----
+bootJar {
+  launchScript()
+}
+----
+
+그런 다음 ./my-application.jar(my-application은 artifact 이름이다)를 입력하여 application을 실행할 수 있다. jar가 들어있는 디렉토리가 application의 작업 디렉토리로 사용된다.
+
+== 63.1 지원되는 운영체제
+스크립트는 대부분 Linux 배포판을 지원하며 CentOS 및 Ubuntu에서 테스트 되었다. OS X 및 FreeBSD와 같은 다른 플랫폼에서는 커스텀 embeddedLaunchScript가 필요하다.
+
+== 63.2 Unix/Linux Services
+Spring Boot application은 init.d 또는 systemd를 사용하여 Unix/Linux 서비스로 쉽게 시작할 수 있다.
+
+=== init.d 서비스로 설치 (System V)
+Spring Boot의 Maven 또는 Gradle 플러그인이 실행 가능한 jar를 생성하도록 설정하고 커스텀 embeddedLaunchScript를 사용하지 않으면 application을 init.d 서비스로 사용할 수 있다. 이렇게 하려면 jar를 init.d에 심볼릭 링크하여 표준 시작, 중지, 다시 시작 및 상태 명령을 지원해야 한다.
+
+스크립트는 다음 기능을 지원한다:
+
+* jar 파일을 소유한 사용자로 서비스를 시작
+
+* /var/run/<appname>/<appname>.pid를 사용하여 application의 PID 추적
+
+* /var/log/<appname>.log에 콘솔 로그들 기록
+
+/var/myapp에 Spring Boot application이 설치되어 있다고 가정하고, Spring Boot application을 init.d 서비스로 설치하려면 다음과 같이 심볼릭 링크를 만드시오:
+
+[source,bash]
+----
+$ sudo ln -s /var/myapp/myapp.jar /etc/init.d/myapp
+----
+
+설치가 되면 일반적인 방법으로 서비스를 시작하고 중지할 수 있다. 예를 들어 데비안 기반 시스템에서는 다음 명령을 사용하여 시작할 수 있다:
+
+[source,bash]
+----
+$ service myapp start
+----
+
+[TIP]
+====
+application이 시작되지 않으면 /var/log/<appname>.log에 기록된 로그 파일에서 오류가 있는지 확인하시오.
+====
+
+표준 운영체제 툴을 사용하여 application에 자동으로 시작되도록 플래그를 지정할 수 있다. 예를 들어 데비안에서는 다음 명령을 사용할 수 있다:
+
+[source,bash]
+----
+$ update-rc.d myapp defaults <priority>
+----
+
+==== init.d 서비스 보안
+
+[NOTE]
+====
+다음은 init.d 서비스로 실행되는 Spring Boot application의 보안을 유지하는 방법에 대한 가이드 라인이다. application과 application이 실행되는 환경을 강화하기 위해 수행해야 하는 작업은 아니다.
+====
+
+root로 실행될 때 root가 init.d 서비스를 시작하는 데 사용되는 경우처럼 실행가능한 스크립트는 jar 파일을 소유한 사용자로 application을 실행한다. Spring Boot application을 root 권한으로는 실행하면 안되므로 application의 jar 파일을 절대 root가 소유해서는 안된다. 대신 다음 예제와 같이 특정 사용자를 만들어 application을 실행하고 chown을 사용하여 jar 파일의 소유자로 만든다.
+
+[source,bash]
+----
+$ chown bootapp:bootapp your-app.jar
+----
+
+[TIP]
+====
+application의 사용자 계정이 손상될 가능성을 줄이려면 로그인 쉘을 사용하지 못하도록 해야 한다. 예를 들어 계정의 쉘을 /usr/sbin/nologin으로 설정할 수 있다.
+====
+
+또한 application의 jar 파일을 수정하지 못하도록 해야 한다. 다음 예제와 같이 쓰기 권한이 없고 해당 소유자만 읽거나 실행할 수 있도록 사용 권한을 구성한다:
+
+[source,bash]
+----
+$ chmod 500 your-app.jar
+----
+
+둘째, application이나 application을 실행하는 계정이 손상된 경우에도 피해를 최소화하는 조치를 취해야 한다. 공격자가 액세스 권한을 획득하면 jar 파일을 쓰기 가능으로 만들고 내용을 변경할 수 있다. 이를 방지하는 방법은 다음 예와 같이 chattr을 사용하여 변경을 못하게(불변으로) 만들 수 있다.
+
+[source,bash]
+----
+$ sudo chattr +i your-app.jar
+----
+
+이렇게하면 루트를 포함하여 모든 사용자가 jar를 수정하지 못하게 된다.
+
+root를 사용하여 application의 서비스를 제어하고 .conf 파일을 사용하여 시작을 사용자 정의하면 root 사용자가 .conf 파일을 읽고 평가한다. 이 파일은 보안이 되어야 한다. chmod를 사용하여 파일을 소유자만 읽을 수 있도록 하고 chown을 사용하여 다음 예와 같이 root를 소유자로 만든다:
+
+[source,bash]
+----
+$ chmod 400 your-app.conf
+$ sudo chown root:root your-app.conf
+----
+
+=== system Service로 설치
+systemd는 System V init 시스템의 후속 버전이며 현재 많은 요즘의 리눅스 배포판에서 사용되고 있다. systemd.와 함께 init.d 스크립트를 계속 사용할 수 있지만 systemd 'service' 스크립트를 사용하여 Spring Boot application을 시작할 수 있다.
+
+/var/myapp에 Spring Boot application이 설치되어 있다고 가정하고, Spring Boot application을 systemd 서비스로 설치하려면 myapp.service 스크립트를 작성하여 /etc/systemd/system 디렉토리에 넣어야 한다. 다음 예제에서 스크립트를 제공한다:
+
+[source]
+----
+[Unit]
+Description=myapp
+After=syslog.target
+
+[Service]
+User=myapp
+ExecStart=/var/myapp/myapp.jar
+SuccessExitStatus=143
+
+[Install]
+WantedBy=multi-user.target
+----
+
+[IMPORTANT]
+====
+application의 설명, 사용자 및 ExecStart 필드를 변경하는 것을 잊지 마시오.
+====
+
+[NOTE]
+====
+ExecStart 필드는 script action 명령을 선언하지 않는다. 즉, run 명령이 기본적으로 사용된다.
+====
+
+init.d 서비스로 실행될 때와 달리 application, PID 파일 및 콘솔 로그 파일을 실행하는 사용자는 systemd 자체에서 관리되므로 'service' 스크립트의 해당 필드를 사용하여 구성해야 한다. 자세한 내용은 http://www.freedesktop.org/software/systemd/man/systemd.service.html[서비스 단위 구성 매뉴얼 페이지]를 참조하시오.
+
+시스템 부팅 시 자동으로 application이 시작되도록 플래그를 지정하려면 다음 명령을 사용하시오:
+
+[source,bash]
+----
+$ systemctl enable myapp.service
+----
+
+자세한 내용은 man systemctl을 참조하시오.
+
+=== 시작 스크립트 사용자 정의
+Maven 또는 Gradle 플러그인으로 작성된 기본 내장 시작 스크립트는 여러가지 방법으로 사용자 정의할 수 있다. 대부분의 사람들은 기본 스크립트를 약간의 사용자 정의와 함께 사용하는 것으로 충분하다. 필요한 것을 사용자 정의할 수 없다면 embeddedLaunchScript 옵션을 사용하여 자신만의 파일을 작성하시오.
+
+==== 작성시 시작 스크립트 사용자 정의
+
+시작 스크립트가 jar 파일에 기록될 때 시작 스크립트의 요소를 사용자 정의하는 것이 좋다. 예를 들어, init.d 스크립트는 "설명"을 제공할 수 있다. 앞쪽에 설명을 알고 있기 때문에 (그리고 변경할 필요가 없음) jar가 생성될 때 제공할 수 있다.
+
+작성된 요소를 사용자 정의하려면 Spring Boot Maven 또는 Gradle 플러그인의 embeddedLaunchScriptProperties 옵션을 사용하시오.
+
+기본 스크립트에서 지원되는 프로퍼티 대체는 다음과 같다:
+
+|===
+|*이름* |*설명* |*Gradle 기본값* |*Maven 기본값*
+|mode |스크립트 모드 |auto |auto
+|initInfoProvides |"INIT INFO"의 Provides 섹션 |${task.baseName} |${project.artifactId}
+|initInfoRequiredStart |"INIT INFO"의 Required-Start 섹션 |$remote_fs $syslog $network |$remote_fs $syslog $network
+|initInfoRequiredStop |"INIT INFO"의 Required-Stop 젝션 |$remote_fs $syslog $network |$remote_fs $syslog $network
+|initInfoDefaultStart |"INIT INFO"의 Default-Start 섹션 |2 3 4 5 |2 3 4 5
+|initInfoDefaultStop |"INIT INFO"의 Default-Stop 섹션 |0 1 6 |0 1 6
+|initInfoShortDescription |"INIT INFO"의 Short-Description 섹션 |Single-line version of ${project.description} (falling back to ${task.baseName}) |${project.name}
+|initInfoDescription |"INIT INFO"의 Description 섹션 |${project.description} (falling back to ${task.baseName}) |${project.description} (falling back to ${project.name})
+|initInfoChkconfig |"INIT INFO"의 chkconfig 섹션 |2345 99 01 |2345 99 01
+|confFolder |CONF_FOLDER의 기본값 |Folder containing the jar |Folder containing the jar
+|inlinedConfScript |기본 시작 스크립트에서 인라인되어야 하는 파일 스크립트에 대한 참조. 외부 설정 파일이 로드되기 전에 JAVA_OPTS와 같은 환경변수를 설정하는 데 사용 | |
+|logFolderDefault |LOG_FOLDER의 기본값. init.d 서비스에만 유효 | |
+|logFilename |LOG_FILENAME의 기본값. init.d 서비스에만 유효 | |
+|pidFolderDefault |PID_FOLDER 기본값. init.d 서비스에만 유효 | |
+|pidFilename |PID_FOLDER에 있는 PID 파일 이름의 기본값. init.d 서비스에만 유효 | |
+|useStartStopDaemon |start-stopdaemon 명령이 사용할 수 있을 때 프로세스를 제어하는 데 사용할지 여부 |true |true
+|stopWaitTime |STOP_WAIT_TIME의 기본값 (초). init.d 서비스에만 유효 |60 |60
+|===
+
+==== 스크립트 실행 시 사용자 정의
+jar가 작성된 후 사용자 정의해야 하는 스크립트 항목의 경우 환경변수 또는 구성 파일을 사용할 수 있다.
+
+기본 스크립트에서 지원되는 환경 등록 정보는 다음과 같다:
+
+|===
+|*변수* |*설명*
+|MODE |작동의 "모드". 기본값은 jar가 빌드 된 방법에 따라 다르지만 대개 자동이다 (init.d 디렉토리의 심볼릭 링크인지 확인하여 init 스크립트인지 여부를 추측). stop|start|status|restart 명령이 작동하도록 스크립트를 명시적으로 설정하거나 foreground에서 스크립트를 실행하려는 경우 실행할 수 있다.
+|USE_START_STOP_DAEMON |start-stop-daemon 명령을 사용할 수 있을 때 프로세스를 제어하는 데 사용할지 여부. 기본값은 true
+|PID_FOLDER |pid 폴더의 root 이름 (기본적으로 /var/run).
+|LOG_FOLDER |로그 파일을 넣을 폴더의 이름 (기본적으로 /var/log).
+|CONF_FOLDER |.conf 파일을 읽을 폴더의 이름 (기본적으로 jar-file과 같은 폴더).
+|LOG_FILENAME |LOG_FOLDER (기본적으로 <appname>.log)에 있는 로그 파일의 이름
+|APP_NAME |app의 이름. jar 파일이 심볼릭 링크에서 실행되면 스크립트는 app 이름을 추측한다. 심볼릭 링크가 아니거나 app 이름을 명시적으로 설정하는 경우 유용함.
+|RUN_ARGS |프로그램에 전달할 인자들 (Spring Boot app).
+|JAVA_HOME |java 실행 파일의 위치는 기본적으로 PATH를 사용하여 검색되지만 $JAVA_HOME/bin/java에 실행 파일이 있으면 명시적으로 설정할 수 있다.
+|JAVA_OPTS |JVM이 시작될 때 전달되는 옵션.
+|JARFILE |jar 파일의 명시적 위치. 스크립트가 실제로 포함되어 있지 않은 "jar"를 시작하는 데 사용되는 경우.
+|DEBUG |비어있지 않은 경우 쉘 프로세스에 -x 플래그를 설정하여 스크립트의 로직을 쉽게 확인할 수 있다.
+|STOP_WAIT_TIME |application을 강제 종료하기 전 대기할 시간(초) (기본적으로 60). 
+|===
+
+[NOTE]
+====
+PID_FOLDER, LOG_FOLDER 및 LOG_FILENAME 변수는 init.d 서비스에만 유효한다. systemd의 경우 'service' 스크립트를 사용하여 동등한 사용자 정의를 수행된다. 자세한 내용은 http://www.freedesktop.org/software/systemd/man/systemd.service.html[서비스 단위 구성 매뉴얼 페이지]를 참조하시오.
+====
+
+JARFILE 및 APP_NAME을 제외하고 이전 섹션에 나열된 설정은 .conf 파일을 사용하여 구성할 수 있다. 이 파일은 jar 파일 옆에 있어야 하며 이름이 같지만 .jar 대신 .conf 접미사가 붙을 것이다. 예를 들어 /var/myapp/myapp.jar라는 이름의 jar는 다음 예제와 같이 /var/myapp/myapp.conf라는 구성 파일을 사용한다.
+
+*myapp.conf.*
+
+[source,conf]
+----
+JAVA_OPTS=-Xmx1024M
+LOG_FOLDER=/custom/log/folder
+----
+
+[TIP]
+====
+jar 파일 옆에 config 파일을 갖고싶지 않은 경우 CONF_FOLDER 환경변수를 설정하여 구성 파일의 위치를 사용자 정의할 수 있다.
+====
+
+이 파일의 적절한 보안에 대한 자세한 내용은 init.d 서비스 보안에 대한 가이드라인을 참조하시오.
+
+== 63.3 Microsoft Windows Services
+Spring Boot application은 https://github.com/kohsuke/winsw[winsw]를 사용하여 Windows 서비스로 시작할 수 있다.
+
+A(https://github.com/snicoll-scratches/spring-boot-daemon[별도 샘플])에서는 Spring Boot application에 대한 Windows 서비스를 생성하는 방법을 단계별로 설명한다.
+
+== 64. 다음에 읽을 내용
+PaaS가 제공하는 기능에 대한 자세한 내용은 https://www.cloudfoundry.org/[Cloud Foundry], https://www.heroku.com/[Heroku], https://www.openshift.com/[OpenShift] 및 https://boxfuse.com/[Boxfuse] 웹 사이트를 참조하시오. 이는 가장 인기있는 Java PaaS 공급자이다. Spring Boot는 클라우드 기반 배포에 매우 적합하므로 다른 공급자도 고려할 수 있다.
+
+다음 섹션에서는 Spring Boot CLI를 다루거나, 빌드 툴 플러그인에 대한 정보를 얻을 수 있다.
